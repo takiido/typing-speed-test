@@ -7,13 +7,15 @@ import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.NonBlockingReader;
 
+import dev.takiido.filereader.FileReader;
+
 public class Main {
     static final String RED = "\u001B[31m";
     static final String GREEN = "\u001B[32m";
     static final String RESET = "\u001B[0m";
 
-    public static void main(String[] args) throws Exception {
-        String text = "Test";
+    public static void main(String[] args) throws IOException {
+        String text = FileReader.readFile("ExampleText.txt");
 
         // Setup terminal in raw mode
         Terminal terminal = TerminalBuilder.builder()
@@ -114,5 +116,4 @@ public class Main {
         // Wait for a single key press to exit
         reader.read();
     }
-
 }
