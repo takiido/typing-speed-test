@@ -5,66 +5,78 @@ import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.NonBlockingReader;
 
-import dev.takiido.filereader.FileReader;
-
 public class Main {
+    static final String RED = "\u001B[31m";
+    static final String GREEN = "\u001B[32m";
+    static final String RESET = "\u001B[0m";
+
     public static void main(String[] args) throws Exception {
-
-        clearTerminal();
-
-        // Load text from file
-        FileReader fileReader = new FileReader();
-        String text = fileReader.readFile("ExampleText.txt");
-
-        // Print the text the user must type
-        System.out.println(text);
-        System.out.println();
+        String text = "Test";
 
         // Setup terminal in raw mode
         Terminal terminal = TerminalBuilder.builder()
                 .system(true)
                 .jna(true)
                 .build();
-
         terminal.enterRawMode();
+        terminal.puts(InfoCmp.Capability.clear_screen);
+
+        // Print the text the user must type
+        terminal.writer().print(text);
+        terminal.puts(InfoCmp.Capability.cursor_address, 0, 0);
+        terminal.writer().flush();
+
         NonBlockingReader reader = terminal.reader();
 
-        int index = 0; // user typing position
-        int length = text.length();
-
-        System.out.println("Start typing (ESC to exit):");
-
+        StringBuilder buffer = new StringBuilder();
         int ch;
 
-        terminal.puts(InfoCmp.Capability.cursor_address, 0, 0);
+        for (;;) {
+            if (buffer.length() >= text.length()) {
+                break;
+            }
+            ch = reader.read();
 
-        while ((ch = reader.read()) != 27) { // ESC exits
-
-            if (index >= length) {
+            if (ch == 27) { // ESC
                 break;
             }
 
-            char expected = text.charAt(index);
-            char typed = (char) ch;
-            terminal.flush();
+            if (ch == 127) { // BACKSPACE
+                if (buffer.length() > 0) {
+                    buffer.deleteCharAt(buffer.length() - 1);
 
-            terminal.puts(InfoCmp.Capability.cursor_address, 0, index + 1);
+                    // Move cursor left, erase char, move left again
+                    terminal.puts(InfoCmp.Capability.cursor_left);
+                    terminal.writer().print(text.charAt(buffer.length()));
+                    terminal.puts(InfoCmp.Capability.cursor_left);
 
-            if (Character.toLowerCase(expected) == Character.toLowerCase(typed)) {
-                System.out.print("\u001B[32m" + typed + "\u001B[0m"); // green good
-                index++;
-            } else {
-                System.out.print("\u001B[31m" + typed + "\u001B[0m"); // red wrong
+                    terminal.writer().flush();
+                }
+                continue;
+            }
+
+            // Regular printable char
+            if (ch >= 32 && ch <= 126) {
+                char c = (char) ch;
+                buffer.append(c);
+
+                if (checkInput(c, text.charAt(buffer.length() - 1))) {
+                    terminal.writer().print(GREEN);
+                } else {
+                    terminal.writer().print(RED);
+                }
+
+                terminal.writer().print(c);
+                terminal.writer().flush();
             }
         }
 
-        clearTerminal();
-
+        terminal.puts(InfoCmp.Capability.clear_screen);
+        terminal.writer().flush();
         terminal.close();
     }
 
-    private static void clearTerminal() {
-        System.out.print("\033[H\033[2J");
-        System.out.flush();
+    private static boolean checkInput(int ch, char expected) {
+        return Character.toLowerCase(expected) == Character.toLowerCase((char) ch);
     }
 }
