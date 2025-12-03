@@ -1,5 +1,7 @@
 package dev.takiido;
 
+import java.io.IOException;
+
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
@@ -30,6 +32,9 @@ public class Main {
 
         StringBuilder buffer = new StringBuilder();
         int ch;
+
+        int typed = 0;
+        int correct = 0;
 
         // Main loop
         for (;;) {
@@ -65,18 +70,23 @@ public class Main {
             if (ch >= 32 && ch <= 126) {
                 char c = (char) ch;
                 buffer.append(c);
+                typed++;
 
                 // Check if the input is correct
                 if (checkInput(c, text.charAt(buffer.length() - 1))) {
+                    correct++;
                     terminal.writer().print(GREEN);
                 } else {
                     terminal.writer().print(RED);
                 }
 
                 terminal.writer().print(c);
+                terminal.writer().print(RESET);
                 terminal.writer().flush();
             }
         }
+
+        printStats(terminal, reader, typed, correct);
 
         terminal.puts(InfoCmp.Capability.clear_screen);
         terminal.writer().flush();
@@ -84,6 +94,27 @@ public class Main {
     }
 
     private static boolean checkInput(int ch, char expected) {
-        return Character.toLowerCase(expected) == Character.toLowerCase((char) ch);
+        return expected == (char) ch;
     }
+
+    private static void printStats(Terminal terminal, NonBlockingReader reader, int typed, int correct)
+            throws IOException {
+        // Clear screen
+        terminal.puts(InfoCmp.Capability.clear_screen);
+        terminal.writer().flush();
+
+        // Calculate accuracy
+        double accuracy = typed == 0 ? 0 : (double) correct / typed * 100;
+
+        // Print stats
+        terminal.writer().printf("Accuracy: %.2f%%\n", accuracy);
+        terminal.writer().print("Press any key to continue...\n");
+        terminal.writer().flush();
+
+        // Wait for a single key press
+        while (reader.read(-1) == -1) {
+            // Non-blocking wait
+        }
+    }
+
 }
