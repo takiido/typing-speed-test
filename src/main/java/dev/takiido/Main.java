@@ -111,10 +111,8 @@ public class Main {
         terminal.writer().print("Press any key to continue...\n");
         terminal.writer().flush();
 
-        // Wait for a single key press
-        while (reader.read(-1) == -1) {
-            // Non-blocking wait
-        }
+        // Wait for a single key press to exit
+        reader.read();
     }
 
 }
