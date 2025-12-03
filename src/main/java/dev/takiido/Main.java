@@ -31,17 +31,23 @@ public class Main {
         StringBuilder buffer = new StringBuilder();
         int ch;
 
+        // Main loop
         for (;;) {
+            // Check if user has finished typing
             if (buffer.length() >= text.length()) {
                 break;
             }
+
+            // Read input
             ch = reader.read();
 
-            if (ch == 27) { // ESC
+            // ESC key
+            if (ch == 27) {
                 break;
             }
 
-            if (ch == 127) { // BACKSPACE
+            // BACKSPACE key
+            if (ch == 127) {
                 if (buffer.length() > 0) {
                     buffer.deleteCharAt(buffer.length() - 1);
 
@@ -60,6 +66,7 @@ public class Main {
                 char c = (char) ch;
                 buffer.append(c);
 
+                // Check if the input is correct
                 if (checkInput(c, text.charAt(buffer.length() - 1))) {
                     terminal.writer().print(GREEN);
                 } else {
