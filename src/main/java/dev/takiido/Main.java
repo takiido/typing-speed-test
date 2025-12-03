@@ -77,64 +77,104 @@ public class Main {
     }
 
     private static void start(Terminal terminal, NonBlockingReader reader, String text, int timeLeft,
-            boolean training) {
+            boolean training) throws IOException {
+        drawBorder(terminal);
+
+        int verticalPadding = terminal.getSize().getRows() / 2;
+        int stringMaxLength = terminal.getSize().getColumns() - 4;
+
         StringBuilder buffer = new StringBuilder();
-        int ch;
 
-        int typed = 0;
-        int correct = 0;
+        String stringToDisplay = text.substring(0, terminal.getSize().getColumns() / 2 - 2);
+        int initialStringLength = stringToDisplay.length();
 
-        // Main loop
-        for (;;) {
-            // Check if user has finished typing
-            if (buffer.length() >= text.length()) {
-                break;
+        terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding, terminal.getSize().getColumns() / 2);
+
+        terminal.writer().print(stringToDisplay);
+        terminal.writer().flush();
+
+        for (int i = 0; i < text.length(); i++) {
+            terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding, terminal.getSize().getColumns() / 2);
+            terminal.writer().flush();
+            reader.read();
+
+            if (stringToDisplay.length() < stringMaxLength) {
+                stringToDisplay = text.substring(0, stringToDisplay.length() + 1);
+            } else {
+                stringToDisplay = text.substring(i, stringToDisplay.length() + i);
+
             }
-
-            // Read input
-            ch = reader.read();
-
-            // ESC key
-            if (ch == 27) {
-                break;
-            }
-
-            // BACKSPACE key
-            if (ch == 127) {
-                if (buffer.length() > 0) {
-                    buffer.deleteCharAt(buffer.length() - 1);
-
-                    // Move cursor left, erase char, move left again
-                    terminal.puts(InfoCmp.Capability.cursor_left);
-                    terminal.writer().print(text.charAt(buffer.length()));
-                    terminal.puts(InfoCmp.Capability.cursor_left);
-
-                    terminal.writer().flush();
-                }
-                continue;
-            }
-
-            // Regular printable char
-            if (ch >= 32 && ch <= 126) {
-                char c = (char) ch;
-                buffer.append(c);
-                typed++;
-
-                // Check if the input is correct
-                if (checkInput(c, text.charAt(buffer.length() - 1))) {
-                    correct++;
-                    terminal.writer().print(GREEN);
-                } else {
-                    terminal.writer().print(RED);
-                }
-
-                terminal.writer().print(c);
-                terminal.writer().print(RESET);
-                terminal.writer().flush();
-            }
+            int step = stringToDisplay.length() - initialStringLength;
+            terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding,
+                    terminal.getSize().getColumns() / 2 - step);
+            terminal.writer().print(stringToDisplay);
+            terminal.writer().flush();
         }
 
-        printStats(terminal, reader, typed, correct);
+        // terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding,
+        // terminal.getSize().getColumns() / 2);
+
+        // String textToDisplay = text.substring(0, terminal.getSize().getColumns() / 2
+        // - 2);
+        // terminal.writer().print(textToDisplay);
+
+        // terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding,
+        // terminal.getSize().getColumns() / 2);
+        // terminal.writer().flush();
+
+        // int ch;
+
+        // int typed = 0;
+        // int correct = 0;
+
+        // // Main loop
+        // for (;;) {
+        // // Check if user has finished typing
+        // if (buffer.length() >= text.length()) {
+        // break;
+        // }
+
+        // // Read input
+        // ch = reader.read();
+
+        // // BACKSPACE key
+        // if (ch == 127) {
+        // if (buffer.length() > 0) {
+        // buffer.deleteCharAt(buffer.length() - 1);
+
+        // // Move cursor left, erase char, move left again
+        // terminal.puts(InfoCmp.Capability.cursor_left);
+        // terminal.writer().print(text.charAt(buffer.length()));
+        // terminal.puts(InfoCmp.Capability.cursor_left);
+
+        // terminal.writer().flush();
+        // }
+        // continue;
+        // }
+
+        // // Regular printable char
+        // if (ch >= 32 && ch <= 126) {
+        // char c = (char) ch;
+        // buffer.append(c);
+        // typed++;
+
+        // moveText(terminal, text, true);
+
+        // // // Check if the input is correct
+        // // if (checkInput(c, text.charAt(buffer.length() - 1))) {
+        // // correct++;
+        // // terminal.writer().print(GREEN);
+        // // } else {
+        // // terminal.writer().print(RED);
+        // // }
+
+        // // terminal.writer().print(c);
+        // // terminal.writer().print(RESET);
+        // // terminal.writer().flush();
+        // }
+        // }
+
+        // printStats(terminal, reader, typed, correct);
     }
 
     private static int menu(Terminal terminal, NonBlockingReader reader) throws IOException {
@@ -186,7 +226,6 @@ public class Main {
     }
 
     private static void drawMenu(Terminal terminal, int selected) {
-        terminal.puts(InfoCmp.Capability.clear_screen);
         drawBorder(terminal);
 
         int verticalPadding = terminal.getSize().getRows() / 2;
@@ -221,6 +260,10 @@ public class Main {
     private static void drawBorder(Terminal terminal) {
         Size size = terminal.getSize();
 
+        // Clear screen
+        terminal.puts(InfoCmp.Capability.clear_screen);
+        terminal.writer().flush();
+
         // Top border
         terminal.puts(InfoCmp.Capability.cursor_address, 0, 0);
         terminal.writer().print(YELLOW + "╔" + "═".repeat(size.getColumns() - 2) + "╗");
@@ -238,6 +281,13 @@ public class Main {
         terminal.puts(InfoCmp.Capability.cursor_address, size.getRows() - 1, 0);
         terminal.writer().print(YELLOW + "╚" + "═".repeat(size.getColumns() - 2) + "╝");
 
+        terminal.writer().flush();
+    }
+
+    private static void moveText(Terminal terminal, String text, boolean forward) {
+        terminal.puts(InfoCmp.Capability.cursor_address, terminal.getSize().getRows() / 2,
+                terminal.getSize().getColumns() / 2);
+        terminal.writer().print(text);
         terminal.writer().flush();
     }
 }
