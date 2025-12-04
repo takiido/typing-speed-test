@@ -1,6 +1,7 @@
 package dev.takiido;
 
 import java.io.IOException;
+import java.util.regex.Pattern;
 
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
@@ -20,6 +21,12 @@ public class Main {
     static final String GREEN_BACKGROUND = "\u001B[42m";
 
     static final String RESET = "\u001B[0m";
+
+    static final Pattern ANSI = Pattern.compile("\u001B\\[[;\\d]*m");
+
+    static int visibleLength(String s) {
+        return ANSI.matcher(s).replaceAll("").length();
+    }
 
     public static void main(String[] args) throws IOException {
         String text = FileReader.readFile("ExampleText.txt");
@@ -56,11 +63,8 @@ public class Main {
         terminal.close();
     }
 
-    private static boolean checkInput(int ch, char expected) {
-        return expected == (char) ch;
-    }
-
-    private static void printStats(Terminal terminal, NonBlockingReader reader, int typed, int correct)
+    private static void printStats(Terminal terminal, NonBlockingReader reader, int typed, int correct,
+            long elapsedTime)
             throws IOException {
         // Clear screen
         terminal.puts(InfoCmp.Capability.clear_screen);
@@ -71,6 +75,7 @@ public class Main {
 
         // Print stats
         terminal.writer().printf("Accuracy: %.2f%%\n", accuracy);
+        terminal.writer().printf("Time: %.2f seconds\n", elapsedTime / 1000.0);
         terminal.writer().print("Press any key to continue...\n");
         terminal.writer().flush();
 
@@ -86,19 +91,27 @@ public class Main {
 
         StringBuilder typedHistory = new StringBuilder();
         StringBuilder coloredHistory = new StringBuilder();
+        StringBuilder printedString = new StringBuilder();
 
         int correctCount = 0;
         int typedCount = 0;
 
-        String printedString = "";
-        String stringToDisplay = text.substring(0, terminal.getSize().getColumns() / 2 - 2);
+        // Calculate initial display width
+        int displayWidth = terminal.getSize().getColumns() / 2 - 2;
+        String stringToDisplay = text.substring(0, Math.min(displayWidth, text.length()));
         int initialStringLength = stringToDisplay.length();
+
+        // Start time for WPM calculation
+        long startTime = System.currentTimeMillis();
 
         terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding, terminal.getSize().getColumns() / 2);
         terminal.writer().print(RESET + stringToDisplay);
         terminal.writer().flush();
 
-        for (int i = initialStringLength; i < text.length(); i++) {
+        int textIndex = initialStringLength;
+
+        // Continue until all text has been typed
+        while (printedString.length() < text.length()) {
             terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding, terminal.getSize().getColumns() / 2);
             terminal.writer().flush();
 
@@ -124,22 +137,43 @@ public class Main {
                 }
             }
 
-            printedString += expected;
+            // Trim colored history if it exceeds half screen width
+            if (typedHistory.length() > terminal.getSize().getColumns() / 2 - 1) {
+                coloredHistory = removeFirstTwoAnsiColors(coloredHistory.toString());
+                coloredHistory.delete(0, 1);
+            }
+
+            printedString.append(expected);
             stringToDisplay = stringToDisplay.substring(1);
-            stringToDisplay += text.charAt(i);
+
+            // Add next character to display if available
+            if (textIndex < text.length()) {
+                stringToDisplay += text.charAt(textIndex);
+                textIndex++;
+            }
 
             // Calculate display position
-            int step = printedString.length();
-            int startCol = terminal.getSize().getColumns() / 2 - step;
+            int step = visibleLength(coloredHistory.toString());
+            int startCol = terminal.getSize().getColumns() / 2;
 
             // Display colored history + remaining text
-            terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding, startCol);
+            terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding, startCol - step);
             terminal.writer().print(coloredHistory.toString() + RESET + stringToDisplay);
             terminal.writer().flush();
+
+            if (!training && timeLeft > 0) {
+                long elapsed = System.currentTimeMillis() - startTime;
+                if (elapsed >= timeLeft) {
+                    break;
+                }
+            }
         }
 
+        // Calculate elapsed time
+        long elapsedTime = System.currentTimeMillis() - startTime;
+
         // After completion, show stats
-        printStats(terminal, reader, typedCount, correctCount);
+        printStats(terminal, reader, typedCount, correctCount, elapsedTime);
     }
 
     private static int menu(Terminal terminal, NonBlockingReader reader) throws IOException {
@@ -254,5 +288,28 @@ public class Main {
                 terminal.getSize().getColumns() / 2);
         terminal.writer().print(text);
         terminal.writer().flush();
+    }
+
+    private static StringBuilder removeFirstTwoAnsiColors(String str) {
+        // ANSI escape sequence pattern: \u001B followed by [ and then characters until
+        // 'm'
+        Pattern ansiPattern = Pattern.compile("\u001B\\[[0-9;]*m");
+        java.util.regex.Matcher matcher = ansiPattern.matcher(str);
+
+        int count = 0;
+        int lastEnd = 0;
+        StringBuilder result = new StringBuilder();
+
+        while (matcher.find() && count < 2) {
+            // Append text before this ANSI code
+            result.append(str.substring(lastEnd, matcher.start()));
+            lastEnd = matcher.end();
+            count++;
+        }
+
+        // Append the rest of the string after the first two ANSI codes
+        result.append(str.substring(lastEnd));
+
+        return result;
     }
 }
