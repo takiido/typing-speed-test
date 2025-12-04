@@ -16,6 +16,8 @@ public class Main {
     static final String YELLOW = "\u001B[33m";
 
     static final String YELLOW_BACKGROUND = "\u001B[43m";
+    static final String RED_BACKGROUND = "\u001B[41m";
+    static final String GREEN_BACKGROUND = "\u001B[42m";
 
     static final String RESET = "\u001B[0m";
 
@@ -81,100 +83,63 @@ public class Main {
         drawBorder(terminal);
 
         int verticalPadding = terminal.getSize().getRows() / 2;
-        int stringMaxLength = terminal.getSize().getColumns() - 4;
 
-        StringBuilder buffer = new StringBuilder();
+        StringBuilder typedHistory = new StringBuilder();
+        StringBuilder coloredHistory = new StringBuilder();
 
+        int correctCount = 0;
+        int typedCount = 0;
+
+        String printedString = "";
         String stringToDisplay = text.substring(0, terminal.getSize().getColumns() / 2 - 2);
         int initialStringLength = stringToDisplay.length();
 
         terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding, terminal.getSize().getColumns() / 2);
-
-        terminal.writer().print(stringToDisplay);
+        terminal.writer().print(RESET + stringToDisplay);
         terminal.writer().flush();
 
-        for (int i = 0; i < text.length(); i++) {
+        for (int i = initialStringLength; i < text.length(); i++) {
             terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding, terminal.getSize().getColumns() / 2);
             terminal.writer().flush();
-            reader.read();
 
-            if (stringToDisplay.length() < stringMaxLength) {
-                stringToDisplay = text.substring(0, stringToDisplay.length() + 1);
+            char ch = (char) reader.read();
+            char expected = stringToDisplay.charAt(0);
+
+            typedCount++;
+            typedHistory.append(ch);
+
+            // Add colored character to history
+            if (ch == expected) {
+                correctCount++;
+                if (expected == ' ') {
+                    coloredHistory.append(GREEN_BACKGROUND).append(expected).append(RESET);
+                } else {
+                    coloredHistory.append(GREEN).append(expected).append(RESET);
+                }
             } else {
-                stringToDisplay = text.substring(i, stringToDisplay.length() + i);
-
+                if (expected == ' ') {
+                    coloredHistory.append(RED_BACKGROUND).append(expected).append(RESET);
+                } else {
+                    coloredHistory.append(RED).append(expected).append(RESET);
+                }
             }
-            int step = stringToDisplay.length() - initialStringLength;
-            terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding,
-                    terminal.getSize().getColumns() / 2 - step);
-            terminal.writer().print(stringToDisplay);
+
+            printedString += expected;
+            stringToDisplay = stringToDisplay.substring(1);
+            stringToDisplay += text.charAt(i);
+
+            // Calculate display position
+            int step = printedString.length();
+            int startCol = terminal.getSize().getColumns() / 2 - step;
+
+            // Display colored history + remaining text
+            terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding, startCol);
+            terminal.writer().print(coloredHistory.toString() + RESET + stringToDisplay);
             terminal.writer().flush();
         }
 
-        // terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding,
-        // terminal.getSize().getColumns() / 2);
-
-        // String textToDisplay = text.substring(0, terminal.getSize().getColumns() / 2
-        // - 2);
-        // terminal.writer().print(textToDisplay);
-
-        // terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding,
-        // terminal.getSize().getColumns() / 2);
-        // terminal.writer().flush();
-
-        // int ch;
-
-        // int typed = 0;
-        // int correct = 0;
-
-        // // Main loop
-        // for (;;) {
-        // // Check if user has finished typing
-        // if (buffer.length() >= text.length()) {
-        // break;
-        // }
-
-        // // Read input
-        // ch = reader.read();
-
-        // // BACKSPACE key
-        // if (ch == 127) {
-        // if (buffer.length() > 0) {
-        // buffer.deleteCharAt(buffer.length() - 1);
-
-        // // Move cursor left, erase char, move left again
-        // terminal.puts(InfoCmp.Capability.cursor_left);
-        // terminal.writer().print(text.charAt(buffer.length()));
-        // terminal.puts(InfoCmp.Capability.cursor_left);
-
-        // terminal.writer().flush();
-        // }
-        // continue;
-        // }
-
-        // // Regular printable char
-        // if (ch >= 32 && ch <= 126) {
-        // char c = (char) ch;
-        // buffer.append(c);
-        // typed++;
-
-        // moveText(terminal, text, true);
-
-        // // // Check if the input is correct
-        // // if (checkInput(c, text.charAt(buffer.length() - 1))) {
-        // // correct++;
-        // // terminal.writer().print(GREEN);
-        // // } else {
-        // // terminal.writer().print(RED);
-        // // }
-
-        // // terminal.writer().print(c);
-        // // terminal.writer().print(RESET);
-        // // terminal.writer().flush();
-        // }
-        // }
-
-        // printStats(terminal, reader, typed, correct);
+        // After completion, show stats
+        printStats(terminal, reader, typedCount, correctCount);
     }
 
     private static int menu(Terminal terminal, NonBlockingReader reader) throws IOException {
