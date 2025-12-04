@@ -1,9 +1,7 @@
 package dev.takiido;
 
 import java.io.IOException;
-import java.util.regex.Pattern;
 
-import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
@@ -46,26 +44,5 @@ public class Main {
         terminal.puts(InfoCmp.Capability.clear_screen);
         terminal.writer().flush();
         terminal.close();
-    }
-
-    private static void printStats(Terminal terminal, NonBlockingReader reader, int typed, int correct,
-            long elapsedTime)
-            throws IOException {
-        // Clear screen
-        terminal.puts(InfoCmp.Capability.clear_screen);
-        terminal.writer().flush();
-
-        // Calculate accuracy
-        double accuracy = typed == 0 ? 0 : (double) correct / typed * 100;
-
-        // Print stats
-        terminal.writer().printf("Accuracy: %.2f%%\n", accuracy);
-        terminal.writer().printf("Time: %.2f seconds\n", elapsedTime / 1000.0);
-        terminal.writer().print("Press any key to continue...\n");
-        terminal.writer().flush();
-
-        // Wait for a single key press to exit
-        reader.read();
-
     }
 }
