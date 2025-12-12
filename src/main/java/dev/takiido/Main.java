@@ -8,6 +8,7 @@ import org.jline.utils.InfoCmp;
 import org.jline.utils.NonBlockingReader;
 
 import dev.takiido.filereader.FileReader;
+import dev.takiido.ui.Menu;
 import dev.takiido.ui.UI;
 
 public class Main {
@@ -30,7 +31,7 @@ public class Main {
 
         int timeLeft = 60000;
 
-        switch (UI.menu(terminal, reader)) {
+        switch (Menu.open(terminal, reader)) {
             case 1:
                 UI.printTyper(terminal, reader, text, timeLeft, false);
                 break;
