@@ -11,14 +11,6 @@ import org.jline.utils.InfoCmp;
 import org.jline.utils.NonBlockingReader;
 
 public class UI {
-    static final String RESET = "\u001B[0m";
-    static final String RED = "\u001B[31m";
-    static final String GREEN = "\u001B[32m";
-    static final String YELLOW = "\u001B[33m";
-    static final String RED_BACKGROUND = "\u001B[41m";
-    static final String YELLOW_BACKGROUND = "\u001B[43m";
-    static final String GREEN_BACKGROUND = "\u001B[42m";
-
     static final Pattern ANSI = Pattern.compile("\u001B\\[[;\\d]*m");
 
     private static final String DEFAULT_TITLE = "Typing Speed Test";
@@ -87,27 +79,31 @@ public class UI {
 
         // Top border
         terminal.puts(InfoCmp.Capability.cursor_address, 0, 0);
-        terminal.writer().print(YELLOW + "╔" + "═".repeat(size.getColumns() - 2) + "╗");
+        terminal.writer()
+                .print(TerminalColors.YELLOW.getCode() + "╔" + "═".repeat(size.getColumns() - 2) + "╗"
+                        + TerminalColors.RESET.getCode());
 
         // Vertical borders
         for (int i = 1; i < size.getRows() - 1; i++) {
             terminal.puts(InfoCmp.Capability.cursor_address, i, 0);
-            terminal.writer().print(YELLOW + "║");
+            terminal.writer().print(TerminalColors.YELLOW.getCode() + "║" + TerminalColors.RESET.getCode());
 
             terminal.puts(InfoCmp.Capability.cursor_address, i, size.getColumns() - 1);
-            terminal.writer().print(YELLOW + "║");
+            terminal.writer().print(TerminalColors.YELLOW.getCode() + "║" + TerminalColors.RESET.getCode());
         }
 
         // Bottom border
         terminal.puts(InfoCmp.Capability.cursor_address, size.getRows() - 1, 0);
-        terminal.writer().print(YELLOW + "╚" + "═".repeat(size.getColumns() - 2) + "╝");
+        terminal.writer()
+                .print(TerminalColors.YELLOW.getCode() + "╚" + "═".repeat(size.getColumns() - 2) + "╝"
+                        + TerminalColors.RESET.getCode());
 
         // Write title to terminal
-        setTitle(terminal, DEFAULT_TITLE);
+        // setTitle(terminal, DEFAULT_TITLE);
 
         // Reset color and cursor position
         terminal.puts(InfoCmp.Capability.cursor_address, 0, 0);
-        terminal.writer().print(RESET);
+        terminal.writer().print(TerminalColors.RESET.getCode());
 
         terminal.writer().flush();
     }
@@ -135,28 +131,31 @@ public class UI {
         // Draw menu
         terminal.puts(InfoCmp.Capability.cursor_address, paddings[0] - 2, paddings[1]);
         if (selected == 1) {
-            terminal.writer().print(RESET + YELLOW_BACKGROUND + menu[0] + RESET);
+            terminal.writer().print(TerminalColors.RESET.getCode() + TerminalColors.YELLOW_BACKGROUND.getCode()
+                    + menu[0] + TerminalColors.RESET.getCode());
         } else {
-            terminal.writer().print(RESET + menu[0]);
+            terminal.writer().print(TerminalColors.RESET.getCode() + menu[0]);
         }
 
         terminal.puts(InfoCmp.Capability.cursor_address, paddings[0], paddings[1]);
         if (selected == 2) {
-            terminal.writer().print(RESET + YELLOW_BACKGROUND + menu[1] + RESET);
+            terminal.writer().print(TerminalColors.RESET.getCode() + TerminalColors.YELLOW_BACKGROUND.getCode()
+                    + menu[1] + TerminalColors.RESET.getCode());
         } else {
-            terminal.writer().print(RESET + menu[1]);
+            terminal.writer().print(TerminalColors.RESET.getCode() + menu[1]);
         }
 
         terminal.puts(InfoCmp.Capability.cursor_address, paddings[0] + 2, paddings[1]);
         if (selected == 3) {
-            terminal.writer().print(RESET + YELLOW_BACKGROUND + menu[2] + RESET);
+            terminal.writer().print(TerminalColors.RESET.getCode() + TerminalColors.YELLOW_BACKGROUND.getCode()
+                    + menu[2] + TerminalColors.RESET.getCode());
         } else {
-            terminal.writer().print(RESET + menu[2]);
+            terminal.writer().print(TerminalColors.RESET.getCode() + menu[2]);
         }
 
-        // Reset color and cursor position
+        // TerminalColors.RESET color and cursor position
         terminal.puts(InfoCmp.Capability.cursor_address, 0, 0);
-        terminal.writer().print(RESET);
+        terminal.writer().print(TerminalColors.RESET.getCode());
 
         terminal.writer().flush();
     }
@@ -236,7 +235,7 @@ public class UI {
         long startTime = System.currentTimeMillis();
 
         terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding, terminal.getSize().getColumns() / 2);
-        terminal.writer().print(RESET + stringToDisplay);
+        terminal.writer().print(TerminalColors.RESET.getCode() + stringToDisplay);
         terminal.writer().flush();
 
         int textIndex = initialStringLength;
@@ -256,15 +255,19 @@ public class UI {
             if (ch == expected) {
                 correctCount++;
                 if (expected == ' ') {
-                    coloredHistory.append(GREEN_BACKGROUND).append(expected).append(RESET);
+                    coloredHistory.append(TerminalColors.GREEN_BACKGROUND.getCode()).append(expected)
+                            .append(TerminalColors.RESET.getCode());
                 } else {
-                    coloredHistory.append(GREEN).append(expected).append(RESET);
+                    coloredHistory.append(TerminalColors.GREEN.getCode()).append(expected)
+                            .append(TerminalColors.RESET.getCode());
                 }
             } else {
                 if (expected == ' ') {
-                    coloredHistory.append(RED_BACKGROUND).append(expected).append(RESET);
+                    coloredHistory.append(TerminalColors.RED_BACKGROUND.getCode()).append(expected)
+                            .append(TerminalColors.RESET.getCode());
                 } else {
-                    coloredHistory.append(RED).append(expected).append(RESET);
+                    coloredHistory.append(TerminalColors.RED.getCode()).append(expected)
+                            .append(TerminalColors.RESET.getCode());
                 }
             }
 
@@ -289,7 +292,7 @@ public class UI {
 
             // Display colored history + remaining text
             terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding, startCol - step);
-            terminal.writer().print(coloredHistory.toString() + RESET + stringToDisplay);
+            terminal.writer().print(coloredHistory.toString() + TerminalColors.RESET.getCode() + stringToDisplay);
             terminal.writer().flush();
 
             if (!training && timeLeft > 0) {
@@ -334,7 +337,7 @@ public class UI {
      */
     private static void setTitle(Terminal terminal, String title) {
         terminal.puts(InfoCmp.Capability.cursor_address, 0, 5);
-        terminal.writer().print(DEFAULT_TITLE + " ● " + title);
+        terminal.writer().print(" " + DEFAULT_TITLE + " ● " + title + " ");
     }
 
     /**
