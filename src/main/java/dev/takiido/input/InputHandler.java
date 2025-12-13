@@ -73,8 +73,9 @@ public class InputHandler {
      * Notifies all subscribed listeners of an input action
      * 
      * @param action The input action to notify listeners of
+     * @throws IOException if an I/O error occurs
      */
-    public void notifyListeners(InputActions action) {
+    public void notifyListeners(InputActions action) throws IOException {
         for (InputListenerInterface listener : listeners) {
             if (listener.isActive()) {
                 listener.onInput(action);
@@ -87,8 +88,9 @@ public class InputHandler {
      * 
      * @param action The input action to notify listeners of
      * @param c      The character associated with the input action
+     * @throws IOException if an I/O error occurs
      */
-    public void notifyListeners(InputActions action, char c) {
+    public void notifyListeners(InputActions action, char c) throws IOException {
         for (InputListenerInterface listener : listeners) {
             if (listener.isActive()) {
                 listener.onInput(action, c);

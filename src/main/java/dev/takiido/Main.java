@@ -22,7 +22,7 @@ public class Main {
         terminal.enterRawMode();
 
         InputHandler inputHandler = InputHandler.getInstance(terminal);
-        UiManager uiManager = UiManager.getInstance();
+        UiManager uiManager = UiManager.getInstance(terminal);
         uiManager.setState(UiState.MENU);
 
         while (true) {

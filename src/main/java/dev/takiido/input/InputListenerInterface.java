@@ -1,5 +1,7 @@
 package dev.takiido.input;
 
+import java.io.IOException;
+
 /**
  * Interface for input listeners
  */
@@ -22,14 +24,16 @@ public interface InputListenerInterface {
      * Handles input events
      * 
      * @param action The input action
+     * @throws IOException if an I/O error occurs
      */
-    void onInput(InputActions action);
+    void onInput(InputActions action) throws IOException;
 
     /**
      * Handles input events with a character
      * 
      * @param action The input action
      * @param c      The character
+     * @throws IOException if an I/O error occurs
      */
-    void onInput(InputActions action, char c);
+    void onInput(InputActions action, char c) throws IOException;
 }

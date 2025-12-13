@@ -1,6 +1,5 @@
 package dev.takiido.ui;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.regex.Pattern;
@@ -8,11 +7,13 @@ import java.util.regex.Pattern;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp;
-import org.jline.utils.NonBlockingReader;
 
 import dev.takiido.input.InputHandler;
 
 public class UiManager {
+    private static final String DEFAULT_TITLE = "Typing Speed Test";
+    private static final Pattern ANSI = Pattern.compile("\u001B\\[[;\\d]*m");
+
     private static UiManager instance;
 
     private UiState state = UiState.MENU;
@@ -21,23 +22,30 @@ public class UiManager {
     // private Typer typer;
     // private Stats stats;
 
-    private UiManager() {
+    /**
+     * Private constructor to prevent instantiation
+     * 
+     * @param terminal The terminal to use
+     */
+    private UiManager(Terminal terminal) {
         // Create and subscribe UI Components to input handler
-        Menu menu = new Menu();
+        menu = new Menu(terminal);
         menu.setActive(true);
         InputHandler.getInstance().subscribe(menu);
     }
 
-    public static UiManager getInstance() {
+    /**
+     * Gets the instance of the UI Manager
+     * 
+     * @param terminal The terminal to use
+     * @return The instance of the UI Manager
+     */
+    public static UiManager getInstance(Terminal terminal) {
         if (instance == null) {
-            instance = new UiManager();
+            instance = new UiManager(terminal);
         }
         return instance;
     }
-
-    static final Pattern ANSI = Pattern.compile("\u001B\\[[;\\d]*m");
-
-    private static final String DEFAULT_TITLE = "Typing Speed Test";
 
     /**
      * Sets the state of the UI
@@ -118,155 +126,165 @@ public class UiManager {
         terminal.writer().flush();
     }
 
-    /**
-     * Draws the stats screen
-     * 
-     * @param terminal     The terminal to draw the stats on
-     * @param reader       The reader to read input from
-     * @param typedCount   The number of characters typed
-     * @param correctCount The number of characters typed correctly
-     * @param elapsedTime  The elapsed time in milliseconds
-     * @throws IOException If an I/O error occurs
-     */
-    public static void printStats(Terminal terminal, NonBlockingReader reader, int typedCount, int correctCount,
-            long elapsedTime) throws IOException {
+    // /**
+    // * Draws the stats screen
+    // *
+    // * @param terminal The terminal to draw the stats on
+    // * @param reader The reader to read input from
+    // * @param typedCount The number of characters typed
+    // * @param correctCount The number of characters typed correctly
+    // * @param elapsedTime The elapsed time in milliseconds
+    // * @throws IOException If an I/O error occurs
+    // */
+    // public static void printStats(Terminal terminal, NonBlockingReader reader,
+    // int typedCount, int correctCount,
+    // long elapsedTime) throws IOException {
 
-        // Calculate accuracy
-        double accuracy = typedCount == 0 ? 0 : (double) correctCount / typedCount * 100;
+    // // Calculate accuracy
+    // double accuracy = typedCount == 0 ? 0 : (double) correctCount / typedCount *
+    // 100;
 
-        String[] stats = {
-                "Accuracy: " + String.format("%.2f", accuracy) + " %",
-                "Time: " + String.format("%.2f", elapsedTime / 1000.0) + " seconds"
-        };
+    // String[] stats = {
+    // "Accuracy: " + String.format("%.2f", accuracy) + " %",
+    // "Time: " + String.format("%.2f", elapsedTime / 1000.0) + " seconds"
+    // };
 
-        // Calculate padding
-        int[] paddings = calculatePaddings(terminal, stats);
+    // // Calculate padding
+    // int[] paddings = calculatePaddings(terminal, stats);
 
-        // Clear screen
-        terminal.puts(InfoCmp.Capability.clear_screen);
-        terminal.writer().flush();
+    // // Clear screen
+    // terminal.puts(InfoCmp.Capability.clear_screen);
+    // terminal.writer().flush();
 
-        setTitle(terminal, "Stats");
+    // setTitle(terminal, "Stats");
 
-        // Print stats
-        terminal.puts(InfoCmp.Capability.cursor_address, paddings[0] - 1, paddings[1]);
-        terminal.writer().print(stats[0]);
-        terminal.puts(InfoCmp.Capability.cursor_address, paddings[0], paddings[1]);
-        terminal.writer().print(stats[1]);
-        terminal.puts(InfoCmp.Capability.cursor_address, paddings[0] + 1, paddings[1]);
-        terminal.writer().print("Press any key to continue...\n");
-        terminal.writer().flush();
+    // // Print stats
+    // terminal.puts(InfoCmp.Capability.cursor_address, paddings[0] - 1,
+    // paddings[1]);
+    // terminal.writer().print(stats[0]);
+    // terminal.puts(InfoCmp.Capability.cursor_address, paddings[0], paddings[1]);
+    // terminal.writer().print(stats[1]);
+    // terminal.puts(InfoCmp.Capability.cursor_address, paddings[0] + 1,
+    // paddings[1]);
+    // terminal.writer().print("Press any key to continue...\n");
+    // terminal.writer().flush();
 
-        // Wait for a single key press to exit
-        reader.read();
-    }
+    // // Wait for a single key press to exit
+    // reader.read();
+    // }
 
-    /**
-     * Prints the typing screen
-     * 
-     * @param terminal The terminal to print on
-     * @param reader   The reader to read input from
-     * @param text     The text to type
-     * @param timeLeft The time left in milliseconds
-     * @param training Whether the user is training or testing
-     * @throws IOException If an I/O error occurs
-     */
-    public static void printTyper(Terminal terminal, NonBlockingReader reader, String text, int timeLeft,
-            boolean training) throws IOException {
-        UiManager.printBorder(terminal);
+    // /**
+    // * Prints the typing screen
+    // *
+    // * @param terminal The terminal to print on
+    // * @param reader The reader to read input from
+    // * @param text The text to type
+    // * @param timeLeft The time left in milliseconds
+    // * @param training Whether the user is training or testing
+    // * @throws IOException If an I/O error occurs
+    // */
+    // public static void printTyper(Terminal terminal, NonBlockingReader reader,
+    // String text, int timeLeft,
+    // boolean training) throws IOException {
+    // UiManager.printBorder(terminal);
 
-        int verticalPadding = terminal.getSize().getRows() / 2;
+    // int verticalPadding = terminal.getSize().getRows() / 2;
 
-        StringBuilder typedHistory = new StringBuilder();
-        StringBuilder coloredHistory = new StringBuilder();
-        StringBuilder printedString = new StringBuilder();
+    // StringBuilder typedHistory = new StringBuilder();
+    // StringBuilder coloredHistory = new StringBuilder();
+    // StringBuilder printedString = new StringBuilder();
 
-        int correctCount = 0;
-        int typedCount = 0;
+    // int correctCount = 0;
+    // int typedCount = 0;
 
-        // Calculate initial display width
-        int displayWidth = terminal.getSize().getColumns() / 2 - 2;
-        String stringToDisplay = text.substring(0, Math.min(displayWidth, text.length()));
-        int initialStringLength = stringToDisplay.length();
+    // // Calculate initial display width
+    // int displayWidth = terminal.getSize().getColumns() / 2 - 2;
+    // String stringToDisplay = text.substring(0, Math.min(displayWidth,
+    // text.length()));
+    // int initialStringLength = stringToDisplay.length();
 
-        // Start time for WPM calculation
-        long startTime = System.currentTimeMillis();
+    // // Start time for WPM calculation
+    // long startTime = System.currentTimeMillis();
 
-        terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding, terminal.getSize().getColumns() / 2);
-        terminal.writer().print(TerminalColors.RESET.getCode() + stringToDisplay);
-        terminal.writer().flush();
+    // terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding,
+    // terminal.getSize().getColumns() / 2);
+    // terminal.writer().print(TerminalColors.RESET.getCode() + stringToDisplay);
+    // terminal.writer().flush();
 
-        int textIndex = initialStringLength;
+    // int textIndex = initialStringLength;
 
-        // Continue until all text has been typed
-        while (printedString.length() < text.length()) {
-            terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding, terminal.getSize().getColumns() / 2);
-            terminal.writer().flush();
+    // // Continue until all text has been typed
+    // while (printedString.length() < text.length()) {
+    // terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding,
+    // terminal.getSize().getColumns() / 2);
+    // terminal.writer().flush();
 
-            char ch = (char) reader.read();
-            char expected = stringToDisplay.charAt(0);
+    // char ch = (char) reader.read();
+    // char expected = stringToDisplay.charAt(0);
 
-            typedCount++;
-            typedHistory.append(ch);
+    // typedCount++;
+    // typedHistory.append(ch);
 
-            // Add colored character to history
-            if (ch == expected) {
-                correctCount++;
-                if (expected == ' ') {
-                    coloredHistory.append(TerminalColors.GREEN_BACKGROUND.getCode()).append(expected)
-                            .append(TerminalColors.RESET.getCode());
-                } else {
-                    coloredHistory.append(TerminalColors.GREEN.getCode()).append(expected)
-                            .append(TerminalColors.RESET.getCode());
-                }
-            } else {
-                if (expected == ' ') {
-                    coloredHistory.append(TerminalColors.RED_BACKGROUND.getCode()).append(expected)
-                            .append(TerminalColors.RESET.getCode());
-                } else {
-                    coloredHistory.append(TerminalColors.RED.getCode()).append(expected)
-                            .append(TerminalColors.RESET.getCode());
-                }
-            }
+    // // Add colored character to history
+    // if (ch == expected) {
+    // correctCount++;
+    // if (expected == ' ') {
+    // coloredHistory.append(TerminalColors.GREEN_BACKGROUND.getCode()).append(expected)
+    // .append(TerminalColors.RESET.getCode());
+    // } else {
+    // coloredHistory.append(TerminalColors.GREEN.getCode()).append(expected)
+    // .append(TerminalColors.RESET.getCode());
+    // }
+    // } else {
+    // if (expected == ' ') {
+    // coloredHistory.append(TerminalColors.RED_BACKGROUND.getCode()).append(expected)
+    // .append(TerminalColors.RESET.getCode());
+    // } else {
+    // coloredHistory.append(TerminalColors.RED.getCode()).append(expected)
+    // .append(TerminalColors.RESET.getCode());
+    // }
+    // }
 
-            // Trim colored history if it exceeds half screen width
-            if (typedHistory.length() > terminal.getSize().getColumns() / 2 - 1) {
-                coloredHistory = removeFirstTwoAnsiColors(coloredHistory.toString());
-                coloredHistory.delete(0, 1);
-            }
+    // // Trim colored history if it exceeds half screen width
+    // if (typedHistory.length() > terminal.getSize().getColumns() / 2 - 1) {
+    // coloredHistory = removeFirstTwoAnsiColors(coloredHistory.toString());
+    // coloredHistory.delete(0, 1);
+    // }
 
-            printedString.append(expected);
-            stringToDisplay = stringToDisplay.substring(1);
+    // printedString.append(expected);
+    // stringToDisplay = stringToDisplay.substring(1);
 
-            // Add next character to display if available
-            if (textIndex < text.length()) {
-                stringToDisplay += text.charAt(textIndex);
-                textIndex++;
-            }
+    // // Add next character to display if available
+    // if (textIndex < text.length()) {
+    // stringToDisplay += text.charAt(textIndex);
+    // textIndex++;
+    // }
 
-            // Calculate display position
-            int step = visibleLength(coloredHistory.toString());
-            int startCol = terminal.getSize().getColumns() / 2;
+    // // Calculate display position
+    // int step = visibleLength(coloredHistory.toString());
+    // int startCol = terminal.getSize().getColumns() / 2;
 
-            // Display colored history + remaining text
-            terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding, startCol - step);
-            terminal.writer().print(coloredHistory.toString() + TerminalColors.RESET.getCode() + stringToDisplay);
-            terminal.writer().flush();
+    // // Display colored history + remaining text
+    // terminal.puts(InfoCmp.Capability.cursor_address, verticalPadding, startCol -
+    // step);
+    // terminal.writer().print(coloredHistory.toString() +
+    // TerminalColors.RESET.getCode() + stringToDisplay);
+    // terminal.writer().flush();
 
-            if (!training && timeLeft > 0) {
-                long elapsed = System.currentTimeMillis() - startTime;
-                if (elapsed >= timeLeft) {
-                    break;
-                }
-            }
-        }
+    // if (!training && timeLeft > 0) {
+    // long elapsed = System.currentTimeMillis() - startTime;
+    // if (elapsed >= timeLeft) {
+    // break;
+    // }
+    // }
+    // }
 
-        // Calculate elapsed time
-        long elapsedTime = System.currentTimeMillis() - startTime;
+    // // Calculate elapsed time
+    // long elapsedTime = System.currentTimeMillis() - startTime;
 
-        // After completion, show stats
-        printStats(terminal, reader, typedCount, correctCount, elapsedTime);
-    }
+    // // After completion, show stats
+    // printStats(terminal, reader, typedCount, correctCount, elapsedTime);
+    // }
 
     /**
      * Calculates the paddings for the given strings

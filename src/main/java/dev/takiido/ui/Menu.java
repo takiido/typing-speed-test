@@ -10,15 +10,56 @@ import dev.takiido.input.InputActions;
 import dev.takiido.input.InputListenerInterface;
 
 public class Menu implements InputListenerInterface {
-    private boolean isActive = true;
+    private static final String title = "Menu";
     private static final String[] menuOptions = {
             "1. Start training",
             "2. Start test",
             "3. Exit"
     };
-    private static final String title = "Menu";
 
-    private static int selected = 1;
+    private boolean isActive = true;
+    private int selected = 1;
+    private Terminal terminal;
+
+    public Menu(Terminal terminal) {
+        this.terminal = terminal;
+    }
+
+    @Override
+    public boolean isActive() {
+        return isActive;
+    }
+
+    @Override
+    public void onInput(InputActions action) throws IOException {
+        System.out.println("Menu: " + action);
+        switch (action) {
+            case Enter:
+                handleMenuSelection();
+                break;
+
+            case Up:
+                handleMenuNavigation(-1);
+                break;
+
+            case Down:
+                handleMenuNavigation(1);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    @Override
+    public void onInput(InputActions action, char c) {
+        System.out.println("Menu: " + action + " " + c);
+    }
+
+    @Override
+    public void setActive(boolean active) {
+        this.isActive = active;
+    }
 
     public void open(Terminal terminal, NonBlockingReader reader) throws IOException {
         printMenu(terminal, selected);
@@ -83,7 +124,8 @@ public class Menu implements InputListenerInterface {
         // Draw menu
         terminal.puts(InfoCmp.Capability.cursor_address, paddings[0] - 2, paddings[1]);
         if (selected == 1) {
-
+            terminal.writer().print(TerminalColors.RESET.getCode() + TerminalColors.YELLOW_BACKGROUND.getCode()
+                    + menuOptions[0] + TerminalColors.RESET.getCode());
         } else {
             terminal.writer().print(TerminalColors.RESET.getCode() + menuOptions[0]);
         }
@@ -111,73 +153,25 @@ public class Menu implements InputListenerInterface {
         terminal.writer().flush();
     }
 
-    private static void handleMenuSelection(Terminal terminal, NonBlockingReader reader, int option)
-            throws IOException {
-        switch (option) {
+    private void handleMenuSelection() throws IOException {
+        switch (selected) {
             case 1:
-                printMenu(terminal, 1);
                 break;
             case 2:
-                printMenu(terminal, 2);
                 break;
             case 3:
-                printMenu(terminal, 3);
                 break;
             default:
                 break;
         }
     }
 
-    private void getInput(Terminal terminal, NonBlockingReader reader) throws IOException {
-        int ch;
-        while ((ch = reader.read()) != -1) {
-            if (ch == 10 || ch == 13) {
-                break;
-            }
-            if (ch == 27) { // ESC
-                int next1 = reader.read(); // should be '['
-                int next2 = reader.read(); // actual arrow code
-
-                if (next1 == '[') {
-                    switch (next2) {
-                        case 'A': // UP
-                            selected--;
-                            break;
-                        case 'B': // DOWN
-                            selected++;
-                            break;
-                    }
-                }
-            } else if (ch == '1') {
-                selected = 1;
-            } else if (ch == '2') {
-                selected = 2;
-            } else if (ch == '3') {
-                selected = 3;
-            }
-
-            // wrap-around
-            if (selected < 1)
-                selected = 3;
-            if (selected > 3)
-                selected = 1;
-
-            printMenu(terminal, selected);
-        }
-    }
-
-    @Override
-    public boolean isActive() {
-        return isActive;
-    }
-
-    @Override
-    public void onInput(InputActions action) {
-        System.out.println("Menu: " + action);
-    }
-
-    @Override
-    public void setActive(boolean active) {
-        this.isActive = active;
+    private void handleMenuNavigation(int direction) throws IOException {
+        selected += direction;
+        if (selected < 1)
+            selected = 3;
+        if (selected > 3)
+            selected = 1;
+        printMenu(terminal, selected);
     }
 }
