@@ -10,10 +10,15 @@ import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.NonBlockingReader;
 
+import dev.takiido.input.InputHandler;
+
 public class UiManager {
     private static UiManager instance;
 
     private UiManager() {
+        Menu menu = new Menu();
+        menu.setActive(true);
+        InputHandler.getInstance().subscribe(menu);
     }
 
     public static UiManager getInstance() {

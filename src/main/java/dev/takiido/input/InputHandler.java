@@ -1,6 +1,8 @@
 package dev.takiido.input;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.jline.terminal.Terminal;
 import org.jline.utils.NonBlockingReader;
@@ -9,8 +11,8 @@ public class InputHandler {
     // Singleton instance
     private static InputHandler instance;
 
-    // NonBlockingReader instance
-    private NonBlockingReader reader;
+    private NonBlockingReader reader; // NonBlockingReader instance
+    private final List<InputListenerInterface> listeners = new CopyOnWriteArrayList<>(); // List of listeners
 
     private InputHandler(Terminal terminal) throws IOException {
         reader = terminal.reader();
@@ -21,6 +23,26 @@ public class InputHandler {
             instance = new InputHandler(terminal);
         }
         return instance;
+    }
+
+    public static InputHandler getInstance() {
+        return instance;
+    }
+
+    public void subscribe(InputListenerInterface listener) {
+        listeners.add(listener);
+    }
+
+    public void unsubscribe(InputListenerInterface listener) {
+        listeners.remove(listener);
+    }
+
+    public void notifyListeners(InputActions action) {
+        for (InputListenerInterface listener : listeners) {
+            if (listener.isActive()) {
+                listener.onInput(action);
+            }
+        }
     }
 
     /**
@@ -70,10 +92,7 @@ public class InputHandler {
         }
 
         if (result != null) {
-            if (result == InputActions.Character) {
-                System.out.println((char) first);
-            }
-            printInputResult(result);
+            notifyListeners(result);
         }
     }
 

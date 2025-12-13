@@ -6,7 +6,11 @@ import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.NonBlockingReader;
 
-public class Menu {
+import dev.takiido.input.InputActions;
+import dev.takiido.input.InputListenerInterface;
+
+public class Menu implements InputListenerInterface {
+    private boolean isActive = true;
     private static final String[] menuOptions = {
             "1. Start training",
             "2. Start test",
@@ -160,5 +164,20 @@ public class Menu {
 
             printMenu(terminal, selected);
         }
+    }
+
+    @Override
+    public boolean isActive() {
+        return isActive;
+    }
+
+    @Override
+    public void onInput(InputActions action) {
+        System.out.println("Menu: " + action);
+    }
+
+    @Override
+    public void setActive(boolean active) {
+        this.isActive = active;
     }
 }
