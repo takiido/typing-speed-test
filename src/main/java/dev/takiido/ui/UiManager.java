@@ -10,7 +10,19 @@ import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.NonBlockingReader;
 
-public class UI {
+public class UiManager {
+    private static UiManager instance;
+
+    private UiManager() {
+    }
+
+    public static UiManager getInstance() {
+        if (instance == null) {
+            instance = new UiManager();
+        }
+        return instance;
+    }
+
     static final Pattern ANSI = Pattern.compile("\u001B\\[[;\\d]*m");
 
     private static final String DEFAULT_TITLE = "Typing Speed Test";
@@ -115,7 +127,7 @@ public class UI {
      */
     public static void printTyper(Terminal terminal, NonBlockingReader reader, String text, int timeLeft,
             boolean training) throws IOException {
-        UI.printBorder(terminal);
+        UiManager.printBorder(terminal);
 
         int verticalPadding = terminal.getSize().getRows() / 2;
 
