@@ -15,7 +15,14 @@ import dev.takiido.input.InputHandler;
 public class UiManager {
     private static UiManager instance;
 
+    private UiState state = UiState.MENU;
+
+    private Menu menu;
+    // private Typer typer;
+    // private Stats stats;
+
     private UiManager() {
+        // Create and subscribe UI Components to input handler
         Menu menu = new Menu();
         menu.setActive(true);
         InputHandler.getInstance().subscribe(menu);
@@ -31,6 +38,40 @@ public class UiManager {
     static final Pattern ANSI = Pattern.compile("\u001B\\[[;\\d]*m");
 
     private static final String DEFAULT_TITLE = "Typing Speed Test";
+
+    /**
+     * Sets the state of the UI
+     * 
+     * @param state The state to set
+     */
+    public void setState(UiState state) {
+        this.state = state;
+
+        switch (state) {
+            case MENU:
+                menu.setActive(true);
+                break;
+            case TYPER:
+                menu.setActive(false);
+                // typer.setActive(true);
+                break;
+            case STATS:
+                menu.setActive(false);
+                // stats.setActive(true);
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * Gets the current state of the UI
+     * 
+     * @return The current state of the UI
+     */
+    public UiState getState() {
+        return state;
+    }
 
     /**
      * Draws a border around the terminal
@@ -295,5 +336,4 @@ public class UiManager {
     static int visibleLength(String s) {
         return ANSI.matcher(s).replaceAll("").length();
     }
-
 }
