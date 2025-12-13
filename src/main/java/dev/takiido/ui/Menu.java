@@ -1,28 +1,54 @@
 package dev.takiido.ui;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.jline.terminal.Terminal;
-import org.jline.utils.InfoCmp;
-import org.jline.utils.NonBlockingReader;
 
 import dev.takiido.input.InputActions;
 import dev.takiido.input.InputListenerInterface;
+import dev.takiido.ui.layout.Canvas;
+import dev.takiido.ui.widgets.Button;
 
 public class Menu implements InputListenerInterface {
     private static final String title = "Menu";
-    private static final String[] menuOptions = {
-            "1. Start training",
-            "2. Start test",
-            "3. Exit"
-    };
 
     private boolean isActive = true;
-    private int selected = 1;
+    private int selected = 0; // 0-indexed for list access
     private Terminal terminal;
+    private Canvas canvas;
+    private List<Button> options;
 
     public Menu(Terminal terminal) {
         this.terminal = terminal;
+        this.options = new ArrayList<>();
+        init();
+    }
+
+    private void init() {
+        // Initialize Canvas
+        // Size will be updated on draw/resize, but initial size is needed?
+        // Let's use current terminal size
+        canvas = new Canvas(terminal, true);
+
+        // Create Title (Layer 0) - Not selectable
+        // For title, we might want a label widget, but Button works for now (just don't
+        // select it)
+        // Actually, user plan said "Title: Menu (Layer 0)"
+        Button titleButton = new Button(title, 0);
+        canvas.addWidget(titleButton);
+
+        // Create Options (Layer 1)
+        options.add(new Button("Start training", 1));
+        options.add(new Button("Start test", 1));
+        options.add(new Button("Exit", 1));
+
+        for (Button btn : options) {
+            canvas.addWidget(btn);
+        }
+
+        updateSelection();
     }
 
     @Override
@@ -32,18 +58,33 @@ public class Menu implements InputListenerInterface {
 
     @Override
     public void onInput(InputActions action) throws IOException {
-        System.out.println("Menu: " + action);
+        if (!isActive)
+            return;
+
+        // Resize canvas if needed (simple check)
+        if (canvas.getWidth() != terminal.getWidth() || canvas.getHeight() != terminal.getHeight()) {
+            canvas.onResize(terminal.getWidth(), terminal.getHeight());
+        }
+
         switch (action) {
             case Enter:
                 handleMenuSelection();
                 break;
 
             case Up:
-                handleMenuNavigation(-1);
+                selected--;
+                if (selected < 0)
+                    selected = options.size() - 1;
+                updateSelection();
+                draw();
                 break;
 
             case Down:
-                handleMenuNavigation(1);
+                selected++;
+                if (selected >= options.size())
+                    selected = 0;
+                updateSelection();
+                draw();
                 break;
 
             default:
@@ -53,125 +94,48 @@ public class Menu implements InputListenerInterface {
 
     @Override
     public void onInput(InputActions action, char c) {
-        System.out.println("Menu: " + action + " " + c);
+        // Handle direct number input if needed, or ignore
     }
 
     @Override
     public void setActive(boolean active) {
         this.isActive = active;
-    }
-
-    public void open(Terminal terminal, NonBlockingReader reader) throws IOException {
-        printMenu(terminal, selected);
-
-        int ch;
-        while ((ch = reader.read()) != -1) {
-            if (ch == 10 || ch == 13) {
-                break;
+        if (active) {
+            try {
+                draw();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            if (ch == 27) { // ESC
-                int next1 = reader.read(); // should be '['
-                int next2 = reader.read(); // actual arrow code
-
-                if (next1 == '[') {
-                    switch (next2) {
-                        case 'A': // UP
-                            selected--;
-                            break;
-                        case 'B': // DOWN
-                            selected++;
-                            break;
-                        case 'C': // RIGHT
-                            // if you want right navigation
-                            break;
-                        case 'D': // LEFT
-                            // if you want left navigation
-                            break;
-                    }
-                }
-            } else if (ch == '1') {
-                selected = 1;
-            } else if (ch == '2') {
-                selected = 2;
-            } else if (ch == '3') {
-                selected = 3;
-            }
-
-            // wrap-around
-            if (selected < 1)
-                selected = 3;
-            if (selected > 3)
-                selected = 1;
-
-            printMenu(terminal, selected);
         }
     }
 
-    /**
-     * Draws a main menu with
-     * 
-     * @param terminal The terminal to draw the menu on
-     * @param selected The currently selected option
-     */
-    private static void printMenu(Terminal terminal, int selected) {
-        UiManager.printBorder(terminal);
-
-        UiManager.setTitle(terminal, title);
-
-        // Calculate padding
-        int[] paddings = UiManager.calculatePaddings(terminal, menuOptions);
-
-        // Draw menu
-        terminal.puts(InfoCmp.Capability.cursor_address, paddings[0] - 2, paddings[1]);
-        if (selected == 1) {
-            terminal.writer().print(TerminalColors.RESET.getCode() + TerminalColors.YELLOW_BACKGROUND.getCode()
-                    + menuOptions[0] + TerminalColors.RESET.getCode());
-        } else {
-            terminal.writer().print(TerminalColors.RESET.getCode() + menuOptions[0]);
+    private void updateSelection() {
+        for (int i = 0; i < options.size(); i++) {
+            options.get(i).setSelected(i == selected);
         }
+    }
 
-        terminal.puts(InfoCmp.Capability.cursor_address, paddings[0], paddings[1]);
-        if (selected == 2) {
-            terminal.writer().print(TerminalColors.RESET.getCode() + TerminalColors.YELLOW_BACKGROUND.getCode()
-                    + menuOptions[1] + TerminalColors.RESET.getCode());
-        } else {
-            terminal.writer().print(TerminalColors.RESET.getCode() + menuOptions[1]);
-        }
-
-        terminal.puts(InfoCmp.Capability.cursor_address, paddings[0] + 2, paddings[1]);
-        if (selected == 3) {
-            terminal.writer().print(TerminalColors.RESET.getCode() + TerminalColors.YELLOW_BACKGROUND.getCode()
-                    + menuOptions[2] + TerminalColors.RESET.getCode());
-        } else {
-            terminal.writer().print(TerminalColors.RESET.getCode() + menuOptions[2]);
-        }
-
-        // TerminalColors.RESET color and cursor position
-        terminal.puts(InfoCmp.Capability.cursor_address, 0, 0);
-        terminal.writer().print(TerminalColors.RESET.getCode());
-
-        terminal.writer().flush();
+    private void draw() throws IOException {
+        SceneManager.setTitle(terminal, title);
+        canvas.onResize(terminal.getWidth(), terminal.getHeight());
+        canvas.draw();
     }
 
     private void handleMenuSelection() throws IOException {
+        // options indices: 0=Training, 1=Test, 2=Exit
         switch (selected) {
+            case 0:
+                System.out.println("Start training selected");
+                break;
             case 1:
+                System.out.println("Start test selected");
                 break;
             case 2:
-                break;
-            case 3:
+                System.out.println("Exit selected");
+                System.exit(0);
                 break;
             default:
                 break;
         }
-    }
-
-    private void handleMenuNavigation(int direction) throws IOException {
-        selected += direction;
-        if (selected < 1)
-            selected = 3;
-        if (selected > 3)
-            selected = 1;
-        printMenu(terminal, selected);
     }
 }
