@@ -107,12 +107,12 @@ public class Border {
      * 
      * @param canvas The canvas to draw the border on
      */
-    public void draw(Canvas canvas) {
+    public void draw(Window window) {
         // Get canvas size
-        int width = canvas.getWidth();
-        int height = canvas.getHeight();
+        int width = window.getWidth();
+        int height = window.getHeight();
 
-        Terminal terminal = canvas.getTerminal();
+        Terminal terminal = window.getTerminal();
 
         // Top border
         terminal.puts(InfoCmp.Capability.cursor_address, 0, 0);

@@ -2,50 +2,40 @@ package dev.takiido.ui.layout;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.jline.terminal.Terminal;
-
-import dev.takiido.ui.widgets.Widget;
+import org.jline.terminal.Terminal.Signal;
+import org.jline.terminal.Terminal.SignalHandler;
+import org.jline.utils.InfoCmp;
 
 public class Canvas {
-    private boolean hasBorder;
     private int width;
     private int height;
     private Terminal terminal;
-    private Border border;
 
-    private List<Widget> widgets;
+    private List<Window> windows;
 
     /**
-     * Constructor, creates a canvas without border
+     * Constructor, creates a canvas
+     * 
+     * @param terminal
      */
     public Canvas(Terminal terminal) {
-        this(terminal, false);
-    }
-
-    /**
-     * Constructor, creates a canvas with or without a border
-     * 
-     * @param hasBorder
-     */
-    public Canvas(Terminal terminal, boolean hasBorder) {
-        this(terminal, hasBorder, new Border());
-    }
-
-    /**
-     * Constructor, creates a canvas with custom border
-     * 
-     * @param border
-     */
-    public Canvas(Terminal terminal, boolean hasBorder, Border border) {
         this.width = terminal.getSize().getColumns();
         this.height = terminal.getSize().getRows();
-        this.hasBorder = hasBorder;
         this.terminal = terminal;
-        this.border = border;
-        this.widgets = new ArrayList<>();
+        this.windows = new ArrayList<>();
+
+        // Register signal handler for terminal resize
+        terminal.handle(Signal.WINCH, new SignalHandler() {
+            @Override
+            public void handle(Signal signal) {
+                int newWidth = terminal.getSize().getColumns();
+                int newHeight = terminal.getSize().getRows();
+                onResize(newWidth, newHeight);
+                draw(true);
+            }
+        });
     }
 
     /**
@@ -85,8 +75,8 @@ public class Canvas {
         this.width = width;
         this.height = height;
 
-        for (Widget widget : widgets) {
-            widget.updateSize(width, height);
+        for (Window window : windows) {
+            window.updateSize(width, height);
         }
     }
 
@@ -104,8 +94,8 @@ public class Canvas {
      * 
      * @param widget The widget to add
      */
-    public void addWidget(Widget widget) {
-        widgets.add(widget);
+    public void addWindow(Window window) {
+        windows.add(window);
     }
 
     /**
@@ -113,60 +103,27 @@ public class Canvas {
      * 
      * @param widget The widget to remove
      */
-    public void removeWidget(Widget widget) {
-        widgets.remove(widget);
+    public void removeWindow(Window window) {
+        windows.remove(window);
     }
 
     /**
      * Draws the canvas
      */
     public void draw() {
-        if (hasBorder) {
-            border.draw(this);
+        this.draw(true);
+    }
+
+    /**
+     * Draws the canvas
+     * 
+     * @param clearScreen Whether to clear the screen before drawing
+     */
+    private void draw(boolean clearScreen) {
+        // Clear screen
+        if (clearScreen) {
+            terminal.puts(InfoCmp.Capability.clear_screen);
+            terminal.flush();
         }
-        // Group widgets by layer
-        Map<Integer, List<Widget>> layerMap = widgets.stream()
-                .collect(Collectors.groupingBy(Widget::getLayer));
-
-        // Iterate through layers in ascending order
-        layerMap.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> {
-                    List<Widget> layerWidgets = entry.getValue();
-                    int layerCount = layerWidgets.size();
-
-                    if (layerCount == 0)
-                        return;
-
-                    // Calculate total height of widgets in this layer (simple stacking)
-                    // Assuming we want to center the whole block of widgets vertically
-                    // But for now let's just stack them starting from middle or top?
-                    // "if two widgets are on the same layer they will be drawn in column"
-                    // Let's center the column vertically in the screen.
-
-                    int totalHeight = layerWidgets.stream().mapToInt(Widget::getHeight).sum();
-                    // Add some spacing? Let's say 1 line spacing
-                    int spacing = 1;
-                    totalHeight += (layerCount - 1) * spacing;
-
-                    int startY = (height - totalHeight) / 2;
-                    if (startY < 0)
-                        startY = 0; // Prevent out of bounds
-
-                    int currentY = startY;
-
-                    for (Widget widget : layerWidgets) {
-                        // Center horizontally
-                        int startX = (width - widget.getWidth()) / 2;
-                        if (startX < 0)
-                            startX = 0;
-
-                        widget.setX(startX);
-                        widget.setY(currentY);
-                        widget.draw(terminal);
-
-                        currentY += widget.getHeight() + spacing;
-                    }
-                });
     }
 }
